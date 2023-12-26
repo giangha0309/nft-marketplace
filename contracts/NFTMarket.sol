@@ -9,22 +9,23 @@ struct NFTListing {
     address seller;
 }
 
-contract NFTMarket is ERC721URIStorage, Ownable {
+contract NFTMarket is ERC721URIStorage{
     mapping(uint256 => NFTListing) private _listings;
 
-
     uint256 private _tokenIDs;
+
+    address private _owner;
 
     // Declare an event that emits the token ID
     event NFTCreated(uint256 indexed tokenID);
 
-
     // if tokenURI is not an empty string => an NFT was created
     // if price is not 0 => an NFT was listed
     // if price is 0 && tokenURI is an empty string => NFT was transferred (either bough, or the listing was canceled)
-    event NFTTransfer(uint256 tokenID, address to, string tokenURI, uint256 price);
+    event NFTTransfer(uint256 tokenID, address from, address to, string tokenURI, uint256 price);
 
     constructor() ERC721("Group 4 NFT", "GFNFT") {
+        _owner = msg.sender;
     }
     
     function createNFT(string calldata tokenURI) public {
@@ -34,7 +35,7 @@ contract NFTMarket is ERC721URIStorage, Ownable {
 
         // Emit an event with the new token ID
         emit NFTCreated(_tokenIDs);
-        emit NFTTransfer(_tokenIDs, msg.sender, tokenURI, 0);
+        emit NFTTransfer(_tokenIDs, address(0),msg.sender, tokenURI, 0);
     }
 
     //listNFT
@@ -43,6 +44,7 @@ contract NFTMarket is ERC721URIStorage, Ownable {
         approve(address(this), tokenID);
         transferFrom(msg.sender, address(this), tokenID);
         _listings[tokenID] = NFTListing(price, msg.sender);
+        emit NFTTransfer(tokenID, msg.sender, address(this), "", price);
     }
 
     //buyNFT
@@ -50,8 +52,10 @@ contract NFTMarket is ERC721URIStorage, Ownable {
         NFTListing memory listing = _listings[tokenID];
         require(listing.price > 0, "NFTMarket: nft not listed for sale");
         require(msg.value == listing.price, "NFTMarket: incorrect price");
-        transferFrom(address(this), msg.sender, tokenID);
-        payable(msg.sender).transfer(listing.price*95/100);
+        ERC721(address(this)).transferFrom(address(this), msg.sender, tokenID);
+        clearListing(tokenID);
+        payable(listing.seller).transfer(listing.price*95/100);
+        emit NFTTransfer(tokenID, address(this), msg.sender, "", 0);
     }
 
     //cancelListing
@@ -61,17 +65,18 @@ contract NFTMarket is ERC721URIStorage, Ownable {
         require(listing.seller == msg.sender, "NFTMarket: you are not the owner");
         transferFrom(address(this), msg.sender, tokenID);
         clearListing(tokenID);
+        emit NFTTransfer(tokenID, address(this), msg.sender, "", 0);
     }
 
-    function withdrawFunds() public onlyOwner {
+    function withdrawFunds() public {
+        require(msg.sender == _owner, "NFTMarket: not the contract owner");
         uint256 balance = address(this).balance;
         require(balance > 0, "NFTMarket: balance is zero");
-        payable(owner()).transfer(balance);
+        payable(msg.sender).transfer(balance);
     }
 
     function clearListing(uint256 tokenID) private {
         _listings[tokenID].price = 0;
         _listings[tokenID].seller = address(0);
     }
-
 }

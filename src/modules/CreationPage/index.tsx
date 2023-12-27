@@ -1,8 +1,9 @@
 import classNames from "classnames";
 import CreationForm, { CreationValues } from "./CreationForm";
+import useSigner from "state/signer";
 
 const CreationPage = () => {
-  const signer = null;
+  const { signer } = useSigner ();
 
   const onSubmit = async (values: CreationValues) => {
     // TODO: create NFT

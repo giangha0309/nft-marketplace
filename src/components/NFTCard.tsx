@@ -1,7 +1,11 @@
 import classNames from "classnames";
 import { BigNumber } from "ethers";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import useNFTMarket from "state/nft-market";
 import { NFT } from "state/nft-market/interfaces";
+import useSigner from "state/signer";
 import { ipfsToHTTPS } from "../helpers";
 import AddressAvatar from "./AddressAvatar";
 import SellPopup from "./SellPopup";
@@ -19,7 +23,9 @@ type NFTCardProps = {
 
 const NFTCard = (props: NFTCardProps) => {
   const { nft, className } = props;
-  const address = "";
+  const { address } = useSigner();
+  const { listNFT, cancelListing } = useNFTMarket();
+  const router = useRouter();
   const [meta, setMeta] = useState<NFTMetadata>();
   const [loading, setLoading] = useState(false);
   const [sellPopupOpen, setSellPopupOpen] = useState(false);
@@ -37,6 +43,8 @@ const NFTCard = (props: NFTCardProps) => {
     };
     void fetchMetadata();
   }, [nft.tokenURI]);
+
+  const showErrorToast = () => toast.warn("Something wrong!");
 
   const onButtonClick = async () => {
     if (owned) {
@@ -57,11 +65,28 @@ const NFTCard = (props: NFTCardProps) => {
   };
 
   const onCancelClicked = async () => {
-    // TODO: cancel listing
+    setLoading(true);
+    try {
+      await cancelListing(nft.id);
+      toast.success(
+        "You canceled this listing. Changes will be reflected shortly."
+      );
+    } catch (e) {
+      showErrorToast();
+      console.log(e);
+    }
+    setLoading(false);
   };
 
   const onSellConfirmed = async (price: BigNumber) => {
-    // TODO: list NFT
+    setSellPopupOpen(false);
+    setLoading(true);
+    try {
+      await listNFT(nft.id, price);
+    } catch(e) {
+      console.log(e);
+    }
+    setLoading(false);
   };
 
   const forSale = nft.price != "0";

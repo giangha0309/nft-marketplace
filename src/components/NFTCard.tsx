@@ -24,7 +24,7 @@ type NFTCardProps = {
 const NFTCard = (props: NFTCardProps) => {
   const { nft, className } = props;
   const { address } = useSigner();
-  const { listNFT, cancelListing } = useNFTMarket();
+  const { listNFT, cancelListing, buyNFT } = useNFTMarket();
   const router = useRouter();
   const [meta, setMeta] = useState<NFTMetadata>();
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,18 @@ const NFTCard = (props: NFTCardProps) => {
   };
 
   const onBuyClicked = async () => {
-    // TODO: buy NFT
+    setLoading(true);
+    try {
+      await buyNFT(nft);
+      router.push("/owned");
+      toast.success(
+        "You collection will be updated shortly! Refresh the page."
+      );
+    } catch (e) {
+      showErrorToast();
+      console.log(e);
+    }
+    setLoading(false);
   };
 
   const onCancelClicked = async () => {

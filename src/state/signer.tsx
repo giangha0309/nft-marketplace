@@ -1,4 +1,5 @@
 import { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
+import { connect } from "http2";
 import {
   createContext,
   ReactNode,
@@ -28,6 +29,7 @@ export const SignerProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const web3modal = new Web3Modal();
     if (web3modal.cachedProvider) connectWallet();
+    window.ethereum.on("accountsChanged", connectWallet);
     window.ethereum.on("accountsChanged", connectWallet);
   }, []);
   
